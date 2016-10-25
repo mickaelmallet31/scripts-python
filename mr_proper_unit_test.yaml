@@ -1,0 +1,88 @@
+[
+    # Test: keep the last one for daily builds : only delete this build not the following one 
+    # even if the retention policy makes this build obsolete
+    {
+        "retention" : "2016-08-25T",
+        "results": [
+            {
+                "repo": "cactus-absp-jf",
+                "path": "build/eng-builds/1A_OSAG_c/PSI/daily",
+                "name": "20160425_0000",
+                "type": "folder",
+                "size": 0,
+                "created": "2016-04-25T06:48:32.674-07:00",
+                "created_by": "jgozalv",
+                "modified": "2016-04-25T06:48:32.674-07:00",
+                "modified_by": "jgozalv",
+                "updated": "2016-04-25T06:48:32.674-07:00"
+            },
+            {
+                "repo": "cactus-absp-jf",
+                "path": "build/eng-builds/1A_OSAG_c/PSI/daily",
+                "name": "20160426_0000",
+                "type": "folder",
+                "size": 0,
+                "created": "2016-04-26T06:48:32.674-07:00",
+                "created_by": "jgozalv",
+                "modified": "2016-04-26T06:48:32.674-07:00",
+                "modified_by": "jgozalv",
+                "updated": "2016-04-26T06:48:32.674-07:00"
+            },
+        ],
+    },
+
+    # Test: check that the rexexp is working for other builders
+    {
+        "retention" : "2016-08-25T",
+        "results": [
+            {
+                "repo": "cactus-absp-tl",
+                "path": "bxtp_ivi-mergerequest",
+                "name": "65",
+                "type": "folder",
+                "size": 0,
+                "created": "2016-07-23T05:47:28.995-07:00",
+                "modified": "2016-07-23T05:47:28.995-07:00",
+                "updated": "2016-07-23T05:47:28.995-07:00"
+            },
+            {
+                "repo": "cactus-absp-tl",
+                "path": "bxtp_ivi-mergerequest",
+                "name": "66",
+                "type": "folder",
+                "size": 0,
+                "created": "2016-07-24T05:47:28.995-07:00",
+                "modified": "2016-07-24T05:47:28.995-07:00",
+                "updated": "2016-07-24T05:47:28.995-07:00"
+            },
+        ],
+    },
+
+    # Test: delete only the build that expired
+    {
+        "retention" : "2016-08-21T",
+        "results": [
+            {
+                "repo": "cactus-absp-tl",
+                "path": "bxtp_ivi-engineering",
+                "name": "65",
+                "type": "folder",
+                "size": 0,
+                "created": "2016-08-20T05:47:28.995-07:00",
+                "modified": "2016-08-20T05:47:28.995-07:00",
+                "updated": "2016-08-20T05:47:28.995-07:00"
+            },
+            {
+                "repo": "cactus-absp-tl",
+                "path": "bxtp_ivi-engineering",
+                "name": "66",
+                "type": "folder",
+                "size": 0,
+                "created": "2016-08-21T05:47:28.995-07:00",
+                "modified": "2016-08-21T05:47:28.995-07:00",
+                "updated": "2016-08-21T05:47:28.995-07:00"
+            },
+        ],
+    },
+
+]
