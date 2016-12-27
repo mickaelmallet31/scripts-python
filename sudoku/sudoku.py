@@ -1,31 +1,118 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
+import re
+import json
+import Tkinter as tk
+
 MAX_COL = 9
 MAX_ROW = 9
 
 matrice = [[[1,2,3,4,5,6,7,8,9] for x in range(MAX_COL)] for y in range(MAX_ROW)]
 matrice_found = [[0 for x in range(MAX_COL)] for y in range(MAX_ROW)]
 
-fileName ="grille3.txt"
+fileName ="grille.json"
+
+class SudokuGrill(tk.Frame):
+    def __init__(self, parent, rows=MAX_ROW, columns=MAX_COL, size=32, color1="white", color_text_orig="black", color_text_found="darkblue"):
+        '''size is the size of a square, in pixels'''
+
+        self.rows = rows
+        self.columns = columns
+        self.size = size
+        self.color1 = color1
+        self.color_text_orig = color_text_orig
+        self.color_text_found = color_text_found
+        self.pieces = {}
+
+        canvas_width = columns * size
+        canvas_height = rows * size
+
+        tk.Frame.__init__(self, parent)
+        self.canvas = tk.Canvas(self, borderwidth=0, highlightthickness=0,
+                                width=canvas_width, height=canvas_height, background="bisque")
+        self.canvas.pack(side="top", fill="both", expand=True, padx=2, pady=2)
+
+        # this binding will cause a refresh if the user interactively
+        # changes the window size
+        self.canvas.bind("<Configure>", self.refresh)
+
+    def addpiece(self, name, text, row=1, column=1):
+        '''Add a piece to the playing board'''
+        color = self.color_text_found
+        if matrice_found[column-1][row-1] == 2:
+            color = self.color_text_orig
+        self.canvas.create_text(0,0, tags=(name, "number"), fill=color, font="Times 20 italic bold",
+                        text=text)
+        self.placepiece(name, row-1, column-1)
+
+    def placepiece(self, name, row, column):
+        '''Place a piece at the given row/column'''
+        self.pieces[name] = (row, column)
+        x0 = (column * self.size) + int(self.size/2)
+        y0 = (row * self.size) + int(self.size/2)
+        self.canvas.coords(name, x0, y0)
+
+    def refresh(self, event):
+        '''Redraw the board, possibly in response to window being resized'''
+        xsize = int((event.width-1) / self.columns)
+        ysize = int((event.height-1) / self.rows)
+        self.size = min(xsize, ysize)
+        self.canvas.delete("square")
+        color = self.color1
+        # Draw the 9x9 grill
+        for row in range(self.rows):
+            for col in range(self.columns):
+                x1 = (col * self.size)
+                y1 = (row * self.size)
+                x2 = x1 + self.size
+                y2 = y1 + self.size
+                self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=color, tags="square")
+        # Draw the 3x3 blocks grill
+        for row in range(3):
+            for col in range(3):
+                x1 = (col * self.size * 3)
+                y1 = (row * self.size * 3)
+                x2 = x1 + self.size * 3
+                y2 = y1 + self.size * 3 
+                self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", width=3, tags="square")
+        for name in self.pieces:
+            self.placepiece(name, self.pieces[name][0], self.pieces[name][1])
+        self.canvas.tag_raise("piece")
+        self.canvas.tag_lower("square")
+
 
 def debug(*list):
     #print(list)
     pass
 
-def DisplayMatrix():
-    print('#'.ljust(217,'#'))
-    for j in range(1, MAX_COL+1):
-        line = "# "
-        for i in range(1, MAX_ROW+1):
-            character = "|"
-            if (i % 3) == 0:
-                character = "#"
-            line += "{:21} {} ".format(matrice[i-1][j-1],character)
-        print("{}".format(line))
+def DisplayMatrix(only_given_values=False):
+    if 0:
+        print('#'.ljust(217,'#'))
+        for j in range(1, MAX_COL+1):
+            line = "# "
+            for i in range(1, MAX_ROW+1):
+                character = "|"
+                if (i % 3) == 0:
+                    character = "#"
+                line += "{:21} {} ".format(matrice[i-1][j-1],character)
+            print("{}".format(line))
 
-        if (j  % 3) == 0:
-            print('#'.ljust(217,'#'))
+            if (j  % 3) == 0:
+                print('#'.ljust(217,'#'))
+
+    # Display the grid with tkinter module
+    root = tk.Tk()
+    board = SudokuGrill(root)
+    board.pack(side="top", fill="both", expand="true", padx=4, pady=4)
+    for j in range(1, MAX_COL+1):
+        for i in range(1, MAX_ROW+1):
+            if only_given_values:
+                if matrice_found[i-1][j-1] == 2:
+                    board.addpiece('text{}{}'.format(i,j), matrice[i-1][j-1], j, i)
+            else:
+                board.addpiece('text{}{}'.format(i,j), matrice[i-1][j-1], j, i)
+    root.mainloop()
 
 def AddValueInMatrix(x, y, v):
     global loop
@@ -211,27 +298,44 @@ def LooksForUniqueColumnRow():
                         AddValueInMatrix(col, row, v)
                         #DisplayMatrix()
 
-for line in open(fileName):
-    line = line.strip()
-    (x,y,v) = line.split(',')
-    if not x.isdigit or not y.isdigit() or not v.isdigit():
-        raise BaseException('X - {} or Y - {} or V - {} are not integers '.format(x, y, v))
-    x = int(x)
-    y = int(y)
-    v = int(v)
-    if x<1 or x>9 :
-        raise BaseException("X value {} out of range (should be between 1 and 9)".format(x))
-    if y<1 or y>9:
-        raise BaseException("Y value {} out of range (should be between 1 and 9)".format(y))
-    if v<1 or v>9:
-        raise BaseException("V value {} out of range (should be between 1 and 9)".format(v))
-    AddValueInMatrix(x, y, v)
+#
+# Main function
+#
+if __name__ == "__main__":
+    if re.search('.json', fileName):
+        data_json = json.load(open(fileName))
+        y = 0
+        for data in data_json:
+            x = 0
+            y += 1
+            for v in data:
+                x += 1
+                if v:
+                    AddValueInMatrix(x, y, v)
+                    matrice_found[x-1][y-1] = 2
+    else:
+        for line in open(fileName):
+            line = line.strip()
+            (x,y,v) = line.split(',')
+            if not x.isdigit or not y.isdigit() or not v.isdigit():
+                raise BaseException('X - {} or Y - {} or V - {} are not integers '.format(x, y, v))
+            x = int(x)
+            y = int(y)
+            v = int(v)
+            if x<1 or x>9 :
+                raise BaseException("X value {} out of range (should be between 1 and 9)".format(x))
+            if y<1 or y>9:
+                raise BaseException("Y value {} out of range (should be between 1 and 9)".format(y))
+            if v<1 or v>9:
+                raise BaseException("V value {} out of range (should be between 1 and 9)".format(v))
+            AddValueInMatrix(x, y, v)
+            matrice_found[x-1][y-1] = 2
 
 
-DisplayMatrix()
+    DisplayMatrix(only_given_values=True)
 
-loop = True
-while loop:    
-    LooksForUniqueColumnRow()
+    loop = True
+    while loop:
+        LooksForUniqueColumnRow()
 
-DisplayMatrix()
+    DisplayMatrix()
