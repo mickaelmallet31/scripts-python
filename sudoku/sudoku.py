@@ -207,9 +207,45 @@ def RemoveNumberFromOtherBlocksRow(v, row, x, y):
 def LooksForUniqueColumnRow():
     global loop
 
+    for i in range(1, MAX_COL+1):
+        for j in range(1, MAX_ROW+1):
+            # Skip the cell if there is only one value
+            if len(matrice[i-1][j-1]) == 1:
+                continue
+
+            # For each value of a specific cell
+            for value in matrice[i-1][j-1]:
+
+                # Check that this value is elsewhere in the same row
+                found = False
+                for i2 in range(1, MAX_COL+1):
+                    if i2 != i and value in matrice[i2-1][j-1]:
+                        found = True
+                        break
+                if found == False:
+                    # This value could be only in this cell
+                    print("Found {} that can be only in cell({},{})".format(value, i, j))
+                    AddValueInMatrix(i, j, value)
+
+                # Skip the cell if there is only one value
+                if len(matrice[i-1][j-1]) == 1:
+                    continue
+
+                # Check that this value is elsewhere in the same column
+                found = False
+                for j2 in range(1, MAX_ROW+1):
+                    if j2 != j and value in matrice[i-1][j2-1]:
+                        found = True
+                        break
+                if found == False:
+                    # This value could be only in this cell
+                    print("Found {} that can be only in cell({},{})".format(value, i, j))
+                    AddValueInMatrix(i, j, value)
+
+                # Check if this value is elsewhere in the same block
+
     found_changes = False
     loop = False
-
     for i in range(0, 3):
         for j in range(0, 3):
             for v in range(1, 9+1):
