@@ -3,7 +3,14 @@
 
 import re
 import json
-import Tkinter as tk
+import sys
+
+try:
+    # for Python2
+    import Tkinter as tk
+except ImportError:
+    # for Python3
+    import tkinter as tk
 
 MAX_COL = 9
 MAX_ROW = 9
@@ -11,10 +18,12 @@ MAX_ROW = 9
 matrice = [[[1,2,3,4,5,6,7,8,9] for x in range(MAX_COL)] for y in range(MAX_ROW)]
 matrice_found = [[0 for x in range(MAX_COL)] for y in range(MAX_ROW)]
 
-fileName ="grille.json"
+fileName = "grille.json"
+if len(sys.argv) > 1:
+    fileName = sys.argv[1]
 
 class SudokuGrill(tk.Frame):
-    def __init__(self, parent, rows=MAX_ROW, columns=MAX_COL, size=32, color1="white", color_text_orig="black", color_text_found="darkblue"):
+    def __init__(self, parent, rows=MAX_ROW, columns=MAX_COL, size=50, color1="white", color_text_orig="black", color_text_found="blue"):
         '''size is the size of a square, in pixels'''
 
         self.rows = rows
@@ -74,7 +83,7 @@ class SudokuGrill(tk.Frame):
                 x1 = (col * self.size * 3)
                 y1 = (row * self.size * 3)
                 x2 = x1 + self.size * 3
-                y2 = y1 + self.size * 3 
+                y2 = y1 + self.size * 3
                 self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", width=3, tags="square")
         for name in self.pieces:
             self.placepiece(name, self.pieces[name][0], self.pieces[name][1])
@@ -100,19 +109,21 @@ def DisplayMatrix(only_given_values=False):
 
             if (j  % 3) == 0:
                 print('#'.ljust(217,'#'))
-
-    # Display the grid with tkinter module
-    root = tk.Tk()
-    board = SudokuGrill(root)
-    board.pack(side="top", fill="both", expand="true", padx=4, pady=4)
-    for j in range(1, MAX_COL+1):
-        for i in range(1, MAX_ROW+1):
-            if only_given_values:
-                if matrice_found[i-1][j-1] == 2:
+    else:
+        # Display the grid with tkinter module
+        root = tk.Tk()
+        root.wm_title(fileName)
+        board = SudokuGrill(root)
+        board.pack(side="top", fill="both", expand="true", padx=4, pady=4)
+        for j in range(1, MAX_COL+1):
+            for i in range(1, MAX_ROW+1):
+                if only_given_values:
+                    if matrice_found[i-1][j-1] == 2:
+                        board.addpiece('text{}{}'.format(i,j), matrice[i-1][j-1], j, i)
+                else:
                     board.addpiece('text{}{}'.format(i,j), matrice[i-1][j-1], j, i)
-            else:
-                board.addpiece('text{}{}'.format(i,j), matrice[i-1][j-1], j, i)
-    root.mainloop()
+        root.bind("<Return>", lambda e: root.destroy())
+        root.mainloop()
 
 def AddValueInMatrix(x, y, v):
     global loop
@@ -128,7 +139,9 @@ def AddValueInMatrix(x, y, v):
                     exit(1)
                 else:
                     if len(matrice[i-1][y-1]) == 1:
-                        AddValueInMatrix(i, y, matrice[i-1][y-1][0])                        
+                        value = matrice[i-1][y-1][0]
+                        print("Cell({},{}) : only {} can be there".format(i, y, value))
+                        AddValueInMatrix(i, y, value)
 
     # Remove the value in the row
     for j in range(1, MAX_ROW+1):
@@ -140,7 +153,9 @@ def AddValueInMatrix(x, y, v):
                     exit(1)
                 else:
                     if len(matrice[x-1][j-1]) == 1:
-                        AddValueInMatrix(x, j, matrice[x-1][j-1][0])
+                        value = matrice[x-1][j-1][0]
+                        print("Cell({},{}) : only {} can be there".format(x, j, value))
+                        AddValueInMatrix(x, j, value)
 
     # Remove from the block
     min_i = int(x / 3)
@@ -160,7 +175,9 @@ def AddValueInMatrix(x, y, v):
                     exit(1)
                 else:
                     if len(matrice[i-1][j-1]) == 1:
-                        AddValueInMatrix(i, j, matrice[i-1][j-1][0])
+                        value = matrice[i-1][j-1][0]
+                        print("Cell({},{}): only {} can be there".format(value, i, j))
+                        AddValueInMatrix(i, j, value)
 
     matrice[x-1][y-1] = [v]
     matrice_found[x-1][y-1] = 1
@@ -224,7 +241,7 @@ def LooksForUniqueColumnRow():
                         break
                 if found == False:
                     # This value could be only in this cell
-                    print("Found {} that can be only in cell({},{})".format(value, i, j))
+                    print("Cell({},{}) : only {} can be there".format(i, j, value))
                     AddValueInMatrix(i, j, value)
 
                 # Skip the cell if there is only one value
@@ -239,7 +256,7 @@ def LooksForUniqueColumnRow():
                         break
                 if found == False:
                     # This value could be only in this cell
-                    print("Found {} that can be only in cell({},{})".format(value, i, j))
+                    print("Cell({},{}) : only {} can be there".format(i, j, value))
                     AddValueInMatrix(i, j, value)
 
                 # Check if this value is elsewhere in the same block
@@ -322,7 +339,7 @@ def LooksForUniqueColumnRow():
 
                 if found_row == 2:
                     print("Found {} that is only in row {} of block({},{})".format(v, row, i+1, j+1))
-                    found_changes != RemoveNumberFromOtherBlocksRow(v, row, i+1, j+1)                    
+                    found_changes != RemoveNumberFromOtherBlocksRow(v, row, i+1, j+1)
 
                 if found_col == 2:
                     print("Found {} that is only in col {} of block({},{})".format(v, col, i+1, j+1))
@@ -330,7 +347,7 @@ def LooksForUniqueColumnRow():
 
                 if found_row == 1 and found_col == 1:
                     if matrice_found[col-1][row-1] == 0:
-                        print("Found {} that can be only in cell({},{})".format(v, col, row))
+                        print("Cell({},{}) : only {} can be there".format(col, row, v))
                         AddValueInMatrix(col, row, v)
                         #DisplayMatrix()
 
