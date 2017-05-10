@@ -4,6 +4,7 @@
 import re
 import json
 import sys
+from copy import deepcopy
 
 try:
     # for Python2
@@ -12,26 +13,33 @@ except ImportError:
     # for Python3
     import tkinter as tk
 
+class Matrix_Corruption(Exception):
+    pass
+
+COLOR_EMPTY = 0
+COLOR_FOUND = 1
+COLOR_CHOSEN = 3
+COLOR_PROVIDED = 2
+
 MAX_COL = 9
 MAX_ROW = 9
 
 matrice = [[[1,2,3,4,5,6,7,8,9] for x in range(MAX_COL)] for y in range(MAX_ROW)]
-matrice_found = [[0 for x in range(MAX_COL)] for y in range(MAX_ROW)]
+matrice_found = [[COLOR_EMPTY for x in range(MAX_COL)] for y in range(MAX_ROW)]
+error_code = 0
 
 fileName = "grille.json"
 if len(sys.argv) > 1:
     fileName = sys.argv[1]
 
 class SudokuGrill(tk.Frame):
-    def __init__(self, parent, rows=MAX_ROW, columns=MAX_COL, size=50, color1="white", color_text_orig="black", color_text_found="blue"):
+    def __init__(self, parent, rows=MAX_ROW, columns=MAX_COL, size=50, color1="white"):
         '''size is the size of a square, in pixels'''
 
         self.rows = rows
         self.columns = columns
         self.size = size
         self.color1 = color1
-        self.color_text_orig = color_text_orig
-        self.color_text_found = color_text_found
         self.pieces = {}
 
         canvas_width = columns * size
@@ -48,9 +56,12 @@ class SudokuGrill(tk.Frame):
 
     def addpiece(self, name, text, row=1, column=1):
         '''Add a piece to the playing board'''
-        color = self.color_text_found
-        if matrice_found[column-1][row-1] == 2:
-            color = self.color_text_orig
+        color = "blue"
+        if matrice_found[column-1][row-1] == COLOR_PROVIDED:
+            color = "black"
+        elif matrice_found[column-1][row-1] == COLOR_CHOSEN:
+            color = "red"
+            
         self.canvas.create_text(0,0, tags=(name, "number"), fill=color, font="Times 20 italic bold",
                         text=text)
         self.placepiece(name, row-1, column-1)
@@ -95,7 +106,14 @@ def debug(*list):
     #print(list)
     pass
 
-def DisplayMatrix(only_given_values=False):
+def ErrorMgt(msg):
+    """ Manage the error code
+    """
+    print msg
+    #print sys.exc_info()
+    raise Matrix_Corruption
+    
+def DisplayMatrix(selected_color):
     if 0:
         print('#'.ljust(217,'#'))
         for j in range(1, MAX_COL+1):
@@ -117,15 +135,15 @@ def DisplayMatrix(only_given_values=False):
         board.pack(side="top", fill="both", expand="true", padx=4, pady=4)
         for j in range(1, MAX_COL+1):
             for i in range(1, MAX_ROW+1):
-                if only_given_values:
-                    if matrice_found[i-1][j-1] == 2:
+                if selected_color:
+                    if matrice_found[i-1][j-1] == selected_color:
                         board.addpiece('text{}{}'.format(i,j), matrice[i-1][j-1], j, i)
                 else:
                     board.addpiece('text{}{}'.format(i,j), matrice[i-1][j-1], j, i)
         root.bind("<Return>", lambda e: root.destroy())
         root.mainloop()
 
-def AddValueInMatrix(x, y, v):
+def AddValueInMatrix(x, y, v, filter=COLOR_FOUND):
     global loop
 
     debug("AddValueInMatrix: v={} in ({},{})".format(v, x, y))
@@ -133,11 +151,10 @@ def AddValueInMatrix(x, y, v):
     for i in range(1, MAX_COL+1):
         if i != x:
             if v in matrice[i-1][y-1]:
-                matrice[i-1][y-1].remove(v)
-                if len(matrice[i-1][y-1]) == 0:
-                    print('Error when removing {} from column {} in ({},{})'.format(v, x, i, y))
-                    exit(1)
+                if len(matrice[i-1][y-1]) == 1:
+                    ErrorMgt('Error when removing {} from column {} in ({},{})'.format(v, x, i, y))
                 else:
+                    matrice[i-1][y-1].remove(v)
                     if len(matrice[i-1][y-1]) == 1:
                         value = matrice[i-1][y-1][0]
                         print("Cell({},{}) : only {} can be there".format(i, y, value))
@@ -147,11 +164,10 @@ def AddValueInMatrix(x, y, v):
     for j in range(1, MAX_ROW+1):
         if j != y:
             if v in matrice[x-1][j-1]:
-                matrice[x-1][j-1].remove(v)
                 if len(matrice[x-1][j-1]) == 0:
-                    print('Error when removing {} from row {} in ({},{})'.format(v, y, x, j))
-                    exit(1)
+                    ErrorMgt('Error when removing {} from row {} in ({},{})'.format(v, y, x, j))
                 else:
+                    matrice[x-1][j-1].remove(v)
                     if len(matrice[x-1][j-1]) == 1:
                         value = matrice[x-1][j-1][0]
                         print("Cell({},{}) : only {} can be there".format(x, j, value))
@@ -171,8 +187,7 @@ def AddValueInMatrix(x, y, v):
             if i!= x and j != y and (v in matrice[i-1][j-1]):
                 matrice[i-1][j-1].remove(v)
                 if len(matrice[i-1][j-1]) == 0:
-                    print('Error when removing {} in ({},{})'.format(v, i, j))
-                    exit(1)
+                    ErrorMgt('Error when removing {} in ({},{})'.format(v, i, j))
                 else:
                     if len(matrice[i-1][j-1]) == 1:
                         value = matrice[i-1][j-1][0]
@@ -180,11 +195,13 @@ def AddValueInMatrix(x, y, v):
                         AddValueInMatrix(i, j, value)
 
     matrice[x-1][y-1] = [v]
-    matrice_found[x-1][y-1] = 1
+    if matrice_found[x-1][y-1] == COLOR_EMPTY:
+        matrice_found[x-1][y-1] = filter
     loop = True
 
 def RemoveNumberFromOtherBlocksCol(v, col, x, y):
     global loop
+    error_code = False
     removed = False
 
     for j in range(1, 9+1):
@@ -200,28 +217,40 @@ def RemoveNumberFromOtherBlocksCol(v, col, x, y):
     if removed == True:
         #DisplayMatrix()
         loop = True
-    return removed
 
 def RemoveNumberFromOtherBlocksRow(v, row, x, y):
     global loop
     removed = False
-
+    
     for i in range(1, 9+1):
         if i >= (x * 3 - 2) and i <= (x * 3):
             continue
         if v in matrice[i-1][row-1]:
             matrice[i-1][row-1].remove(v)
             if len(matrice[i-1][row-1]) == 1:
-                print("Found new value {} alone in {},{}".format(matrice[i-1][row-1][0], i, row))
+                ErrorMgt("Found new value {} alone in {},{}".format(matrice[i-1][row-1][0], i, row))
                 AddValueInMatrix(i, row, matrice[i-1][row-1][0])
             removed = True
 
     if removed == True:
         #DisplayMatrix()
         loop = True
-    return removed
+
+def checkResolvedGrid():
+    """ Check that the current grid is resolved by looking for any cell with
+    more than one number. In this case the function will return FALSE. Otherwise
+     if at the end of the loop it will return TRUE
+    """
+    for i in range(1, 9+1):
+        for j in range(1, 9+1):
+            if len(matrice[i-1][j-1]) > 1:
+                return False
+
+    return True
 
 def LooksForUniqueColumnRow():
+    """
+    """
     global loop
 
     for i in range(1, MAX_COL+1):
@@ -339,17 +368,17 @@ def LooksForUniqueColumnRow():
 
                 if found_row == 2:
                     print("Found {} that is only in row {} of block({},{})".format(v, row, i+1, j+1))
-                    found_changes != RemoveNumberFromOtherBlocksRow(v, row, i+1, j+1)
+                    RemoveNumberFromOtherBlocksRow(v, row, i+1, j+1)
 
                 if found_col == 2:
                     print("Found {} that is only in col {} of block({},{})".format(v, col, i+1, j+1))
-                    found_changes != RemoveNumberFromOtherBlocksCol(v, col, i+1, j+1)
+                    RemoveNumberFromOtherBlocksCol(v, col, i+1, j+1)
 
                 if found_row == 1 and found_col == 1:
-                    if matrice_found[col-1][row-1] == 0:
+                    if matrice_found[col-1][row-1] == COLOR_EMPTY:
                         print("Cell({},{}) : only {} can be there".format(col, row, v))
+                        matrice_found[col-1][row-1] = COLOR_FOUND
                         AddValueInMatrix(col, row, v)
-                        #DisplayMatrix()
 
 #
 # Main function
@@ -364,8 +393,8 @@ if __name__ == "__main__":
             for v in data:
                 x += 1
                 if v:
+                    matrice_found[x-1][y-1] = COLOR_PROVIDED
                     AddValueInMatrix(x, y, v)
-                    matrice_found[x-1][y-1] = 2
     else:
         for line in open(fileName):
             line = line.strip()
@@ -381,14 +410,68 @@ if __name__ == "__main__":
                 raise BaseException("Y value {} out of range (should be between 1 and 9)".format(y))
             if v<1 or v>9:
                 raise BaseException("V value {} out of range (should be between 1 and 9)".format(v))
+            matrice_found[x-1][y-1] = COLOR_PROVIDED
             AddValueInMatrix(x, y, v)
-            matrice_found[x-1][y-1] = 2
 
 
-    DisplayMatrix(only_given_values=True)
+    DisplayMatrix(COLOR_PROVIDED)
 
     loop = True
-    while loop:
-        LooksForUniqueColumnRow()
+    retry = True
+    retry_i = 1
+    retry_j = 1
+    retry_index = 0
+    backup_matrice = []
+    while retry:
+        while loop:
+            LooksForUniqueColumnRow()
+            if loop == False:
+                retry = (checkResolvedGrid() == False)
 
-    DisplayMatrix()
+        if retry:
+
+            tried_this_value = False
+            change_value = False
+            while (retry_i <= 9) and tried_this_value == False:
+
+                while (retry_j <= 9) and tried_this_value == False and change_value == False:
+                
+                    if len(matrice[retry_i-1][retry_j-1]) == 2:
+                        
+                        while (retry_index < 2) and tried_this_value == False:
+
+                            debug('try the value {} of index {} at the cell ({}, {})'.format(matrice[retry_i-1][retry_j-1][retry_index], retry_index, retry_i, retry_j))
+    
+                            try:
+                                tried_this_value = True
+                                backup_matrice = deepcopy(matrice)
+                                AddValueInMatrix(retry_i, retry_j, matrice[retry_i-1][retry_j-1][retry_index])
+                                matrice_found[retry_i-1][retry_j-1] = COLOR_CHOSEN
+                            except Matrix_Corruption:
+                                matrice = deepcopy(backup_matrice)
+                                loop = False
+                                change_value = True
+                                tried_this_value = False
+                                pass
+
+                            if change_value == True:
+                                retry_index += 1
+                                change_value = False
+                                if retry_index >= 2:
+                                    retry_index = 0
+                                    change_value = True                                    
+                    else:
+                        change_value = True
+                                
+                    if change_value == True:
+                        retry_j += 1
+                        change_value = False
+                        if retry_j > 9:
+                            retry_j = 1
+                            change_value = True
+                        
+                if change_value == True:
+                    retry_i += 1
+                    change_value = False
+
+    DisplayMatrix(COLOR_EMPTY)
