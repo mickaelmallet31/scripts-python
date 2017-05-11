@@ -16,11 +16,20 @@ except ImportError:
 class Matrix_Corruption(Exception):
     pass
 
+# Color constants
 COLOR_EMPTY = 0
 COLOR_FOUND = 1
 COLOR_CHOSEN = 3
 COLOR_PROVIDED = 2
 
+# Change indexes
+CHANGE_NOTHING = 0
+CHANGE_INDEX = 1
+CHANGE_J = 2
+CHANGE_I = 3
+
+# limit indexes
+HIGH_LIMIT_INDEX = 2
 MAX_COL = 9
 MAX_ROW = 9
 
@@ -109,7 +118,7 @@ def debug(*list):
 def ErrorMgt(msg):
     """ Manage the error code
     """
-    print msg
+    print(msg)
     #print sys.exc_info()
     raise Matrix_Corruption
     
@@ -122,7 +131,7 @@ def DisplayMatrix(selected_color):
                 character = "|"
                 if (i % 3) == 0:
                     character = "#"
-                line += "{:21} {} ".format(matrice[i-1][j-1],character)
+                line += " {:<20} {}".format(','.join(str(v) for v in matrice[i-1][j-1]), character)
             print("{}".format(line))
 
             if (j  % 3) == 0:
@@ -157,20 +166,20 @@ def AddValueInMatrix(x, y, v, filter=COLOR_FOUND):
                     matrice[i-1][y-1].remove(v)
                     if len(matrice[i-1][y-1]) == 1:
                         value = matrice[i-1][y-1][0]
-                        print("Cell({},{}) : only {} can be there".format(i, y, value))
+                        print("Cell vert({},{}) : only {} can be there".format(i, y, value))
                         AddValueInMatrix(i, y, value)
 
     # Remove the value in the row
     for j in range(1, MAX_ROW+1):
         if j != y:
             if v in matrice[x-1][j-1]:
-                if len(matrice[x-1][j-1]) == 0:
+                if len(matrice[x-1][j-1]) == 1:
                     ErrorMgt('Error when removing {} from row {} in ({},{})'.format(v, y, x, j))
                 else:
                     matrice[x-1][j-1].remove(v)
                     if len(matrice[x-1][j-1]) == 1:
                         value = matrice[x-1][j-1][0]
-                        print("Cell({},{}) : only {} can be there".format(x, j, value))
+                        print("Cell horiz({},{}) : only {} can be there".format(x, j, value))
                         AddValueInMatrix(x, j, value)
 
     # Remove from the block
@@ -191,7 +200,7 @@ def AddValueInMatrix(x, y, v, filter=COLOR_FOUND):
                 else:
                     if len(matrice[i-1][j-1]) == 1:
                         value = matrice[i-1][j-1][0]
-                        print("Cell({},{}): only {} can be there".format(value, i, j))
+                        print("Cell block({},{}) : only {} can be there".format(value, i, j))
                         AddValueInMatrix(i, j, value)
 
     matrice[x-1][y-1] = [v]
@@ -228,7 +237,7 @@ def RemoveNumberFromOtherBlocksRow(v, row, x, y):
         if v in matrice[i-1][row-1]:
             matrice[i-1][row-1].remove(v)
             if len(matrice[i-1][row-1]) == 1:
-                ErrorMgt("Found new value {} alone in {},{}".format(matrice[i-1][row-1][0], i, row))
+                print("Found new value {} alone in {},{}".format(matrice[i-1][row-1][0], i, row))
                 AddValueInMatrix(i, row, matrice[i-1][row-1][0])
             removed = True
 
@@ -270,7 +279,7 @@ def LooksForUniqueColumnRow():
                         break
                 if found == False:
                     # This value could be only in this cell
-                    print("Cell({},{}) : only {} can be there".format(i, j, value))
+                    print("Cell LooksForUniqueColumnRow Col({},{}) : only {} can be there".format(i, j, value))
                     AddValueInMatrix(i, j, value)
 
                 # Skip the cell if there is only one value
@@ -285,7 +294,7 @@ def LooksForUniqueColumnRow():
                         break
                 if found == False:
                     # This value could be only in this cell
-                    print("Cell({},{}) : only {} can be there".format(i, j, value))
+                    print("Cell LooksForUniqueColumnRow Row({},{}) : only {} can be there".format(i, j, value))
                     AddValueInMatrix(i, j, value)
 
                 # Check if this value is elsewhere in the same block
@@ -376,7 +385,7 @@ def LooksForUniqueColumnRow():
 
                 if found_row == 1 and found_col == 1:
                     if matrice_found[col-1][row-1] == COLOR_EMPTY:
-                        print("Cell({},{}) : only {} can be there".format(col, row, v))
+                        print("Cell LooksForUniqueColumnRow block({},{}) : only {} can be there".format(col, row, v))
                         matrice_found[col-1][row-1] = COLOR_FOUND
                         AddValueInMatrix(col, row, v)
 
@@ -422,25 +431,35 @@ if __name__ == "__main__":
     retry_j = 1
     retry_index = 0
     backup_matrice = []
+    change_value = CHANGE_NOTHING
     while retry:
         while loop:
-            LooksForUniqueColumnRow()
+            try:
+                LooksForUniqueColumnRow()
+            except:
+                matrice = deepcopy(backup_matrice)
+                loop = False
+                change_value = CHANGE_INDEX
+                tried_this_value = False
+                pass
+            
             if loop == False:
                 retry = (checkResolvedGrid() == False)
 
         if retry:
 
             tried_this_value = False
-            change_value = False
-            while (retry_i <= 9) and tried_this_value == False:
+            while (retry_i <= MAX_COL) and tried_this_value == False:
 
-                while (retry_j <= 9) and tried_this_value == False and change_value == False:
+                while (retry_j <= MAX_ROW) and tried_this_value == False and change_value not in [CHANGE_I]:
                 
-                    if len(matrice[retry_i-1][retry_j-1]) == 2:
+                    debug('J:retry_i={}, retry_j={}, retry_index={}, change_value={}'.format(retry_i, retry_j, retry_index, change_value))
+                    if len(matrice[retry_i-1][retry_j-1]) == HIGH_LIMIT_INDEX:
                         
-                        while (retry_index < 2) and tried_this_value == False:
+                        while (retry_index < HIGH_LIMIT_INDEX) and tried_this_value == False and change_value == CHANGE_NOTHING:
 
-                            debug('try the value {} of index {} at the cell ({}, {})'.format(matrice[retry_i-1][retry_j-1][retry_index], retry_index, retry_i, retry_j))
+                            debug('INDEX:retry_i={}, retry_j={}, retry_index={}, change_value={}'.format(retry_i, retry_j, retry_index, change_value))
+                            print('try the value {} of index {} at the cell ({}, {})'.format(matrice[retry_i-1][retry_j-1][retry_index], retry_index, retry_i, retry_j))
     
                             try:
                                 tried_this_value = True
@@ -450,28 +469,31 @@ if __name__ == "__main__":
                             except Matrix_Corruption:
                                 matrice = deepcopy(backup_matrice)
                                 loop = False
-                                change_value = True
                                 tried_this_value = False
-                                pass
 
-                            if change_value == True:
-                                retry_index += 1
-                                change_value = False
-                                if retry_index >= 2:
-                                    retry_index = 0
-                                    change_value = True                                    
+                                # Update the retry index
+                                change_value = CHANGE_INDEX
+                                pass
                     else:
-                        change_value = True
-                                
-                    if change_value == True:
-                        retry_j += 1
-                        change_value = False
-                        if retry_j > 9:
-                            retry_j = 1
-                            change_value = True
+                        change_value = CHANGE_J
+
+                    if change_value == CHANGE_INDEX:
+                        retry_index += 1
+                        change_value = CHANGE_NOTHING
+                        if retry_index >= HIGH_LIMIT_INDEX:
+                            retry_index = 0
+                            change_value = CHANGE_J
                         
-                if change_value == True:
+                    if change_value == CHANGE_J:
+                        retry_j += 1
+                        retry_index = 0
+                        change_value = CHANGE_NOTHING
+                        if retry_j > MAX_ROW:
+                            retry_j = 1
+                            change_value = CHANGE_I
+                        
+                if change_value == CHANGE_I:
                     retry_i += 1
-                    change_value = False
+                    change_value = CHANGE_NOTHING
 
     DisplayMatrix(COLOR_EMPTY)
