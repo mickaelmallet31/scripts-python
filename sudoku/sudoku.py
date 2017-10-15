@@ -155,7 +155,7 @@ def DisplayMatrix(selected_color):
 def AddValueInMatrix(x, y, v, filter=COLOR_FOUND):
     global loop
 
-    debug("AddValueInMatrix: v={} in ({},{})".format(v, x, y))
+    debug("AddValueInMatrix: v={} in ({},{}): {} with color={}".format(v, x, y, matrice[x-1][y-1], filter))
     # Remove the value in the col
     for i in range(1, MAX_COL+1):
         if i != x:
@@ -200,14 +200,17 @@ def AddValueInMatrix(x, y, v, filter=COLOR_FOUND):
                 else:
                     if len(matrice[i-1][j-1]) == 1:
                         value = matrice[i-1][j-1][0]
-                        print("Cell block({},{}) : only {} can be there".format(value, i, j))
+                        print("Cell block({},{}) : only {} can be there".format(i, j, value))
                         AddValueInMatrix(i, j, value)
 
     matrice[x-1][y-1] = [v]
     if matrice_found[x-1][y-1] == COLOR_EMPTY:
         matrice_found[x-1][y-1] = filter
     loop = True
-
+    
+    # if filter == COLOR_FOUND:
+        # DisplayMatrix(COLOR_EMPTY)
+    
 def RemoveNumberFromOtherBlocksCol(v, col, x, y):
     global loop
     error_code = False
@@ -294,7 +297,7 @@ def LooksForUniqueColumnRow():
                         break
                 if found == False:
                     # This value could be only in this cell
-                    print("Cell LooksForUniqueColumnRow Row({},{}) : only {} can be there".format(i, j, value))
+                    print("Cell LooksForUniqueColumnRow Row({},{}) : only {} ²".format(i, j, value))
                     AddValueInMatrix(i, j, value)
 
                 # Check if this value is elsewhere in the same block
@@ -386,8 +389,8 @@ def LooksForUniqueColumnRow():
                 if found_row == 1 and found_col == 1:
                     if matrice_found[col-1][row-1] == COLOR_EMPTY:
                         print("Cell LooksForUniqueColumnRow block({},{}) : only {} can be there".format(col, row, v))
-                        matrice_found[col-1][row-1] = COLOR_FOUND
-                        AddValueInMatrix(col, row, v)
+                        #matrice_found[col-1][row-1] = COLOR_FOUND
+                        AddValueInMatrix(col, row, v, COLOR_FOUND)
 
 #
 # Main function
@@ -402,8 +405,8 @@ if __name__ == "__main__":
             for v in data:
                 x += 1
                 if v:
-                    matrice_found[x-1][y-1] = COLOR_PROVIDED
-                    AddValueInMatrix(x, y, v)
+                    #matrice_found[x-1][y-1] = COLOR_PROVIDED
+                    AddValueInMatrix(x, y, v, COLOR_PROVIDED)
     else:
         for line in open(fileName):
             line = line.strip()
@@ -419,8 +422,8 @@ if __name__ == "__main__":
                 raise BaseException("Y value {} out of range (should be between 1 and 9)".format(y))
             if v<1 or v>9:
                 raise BaseException("V value {} out of range (should be between 1 and 9)".format(v))
-            matrice_found[x-1][y-1] = COLOR_PROVIDED
-            AddValueInMatrix(x, y, v)
+            #matrice_found[x-1][y-1] = COLOR_PROVIDED
+            AddValueInMatrix(x, y, v, COLOR_PROVIDED)
 
 
     DisplayMatrix(COLOR_PROVIDED)
