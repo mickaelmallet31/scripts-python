@@ -8,9 +8,6 @@ import codecs
 import sys
 import time
 
-streamWriter = codecs.lookup('utf-8')[-1]
-sys.stdout = streamWriter(sys.stdout)
-
 # https://stackoverflow.com/questions/43438323/python-requests-form-filling
 save = "https://framaforms.org/plainte-suite-a-une-nuisance-aerienne-1577527816"
 
@@ -32,14 +29,21 @@ form_id=webform_client_form_163161
 op=J'envoie ma plainte
 """
 
+def sleep(duration):
+    for i in range(duration, 0, -1):
+        sys.stdout.write('\r{:02d} secondes'.format(i))
+        sys.stdout.flush()
+        time.sleep(1)
+    print('')
+    
 def fill_form(name, firstname, email, day, month, year, hour, minute):
     # construct the POST request
     logging.info('Request for {}:{}:{}:{}:{}:{}:{}:{} ...'.format(name, firstname, email, day, month, year, hour, minute))
     request_ok = True
-    return
-
+    
     with requests.session() as s: # Use a Session object.
-        time.sleep(120)
+        sleep(30)
+        logging.info('Get the form_build_id')
         r = s.get(save)
         if r.status_code in [200]:
             form_build_id = ""
@@ -75,7 +79,8 @@ def fill_form(name, firstname, email, day, month, year, hour, minute):
                 }
 
             # Prepare the data
-            time.sleep(30)
+            sleep(30)
+            logging.info('Send the filled form  ')
             res = s.post(save, data=form_data)
             logging.info(res.status_code)
             if res.status_code not in [200]:
@@ -85,7 +90,7 @@ def fill_form(name, firstname, email, day, month, year, hour, minute):
                 file_dest.write(res.text.encode('utf8'))
                 file_dest.close()
                 request_ok = False
-
+    print('\n')
     return request_ok
 
 #
@@ -98,6 +103,7 @@ dict_names = [
     {'name': 'MALLET', 'firstname': 'Mickael', 'email': 'manou_mickael@yahoo.fr'},
     {'name': 'MALLET', 'firstname': 'Touan', 'email': 'touan.mallet@gmail.com'},
     {'name': 'MALLET', 'firstname': 'Pablo', 'email': 'mallet.pablo@gmail.com'},
+    {'name': 'MIKANDA', 'firstname': 'Marie-Louise', 'email': 'mikanda_marielouise@yahoo.fr'},
 ]
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 parser = argparse.ArgumentParser(description="")
@@ -107,15 +113,21 @@ parser.add_argument("--input",
                     )
 args = parser.parse_args()
 
-for person in dict_names:
-    file_src = open(args.input)
-    for line in file_src:
+file_src = open(args.input)
+for line in file_src:
+    for person in dict_names:
+
         line = line.strip().replace('\t', ';').replace(' ', ';')
         array = line.split(';')
-        day = array[1]
-        (hour, minute) = array[4].split(':')
+        (day, month, year) = array[0].split('/')
+        (hour, minute) = array[1].split(':')
         hour = str(int(hour))
-        request_ok = fill_form(person['name'], person['firstname'], person['email'], day, month, year, hour, minute)
-        if not request_ok:
+        day = str(int(day))
+        month = str(int(month))
+        counter = 0
+        while counter < 10:
             request_ok = fill_form(person['name'], person['firstname'], person['email'], day, month, year, hour, minute)
-    file_src.close()
+            if request_ok:
+                break
+            counter += 1        
+file_src.close()
